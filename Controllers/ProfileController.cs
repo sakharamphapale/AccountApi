@@ -1,6 +1,6 @@
 ﻿using AccountApi.Models;
 using AccountApi.Services;
-using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -12,14 +12,15 @@ namespace AccountApi.Controllers
     public class ProfileController : ControllerBase
     {
         private readonly IProfileService _profileService;
-        private readonly IMapper _mapper;
+        private readonly AutoMapper.IMapper _mapper;
 
-        public ProfileController(IProfileService profileService, IMapper mapper)
+        public ProfileController(IProfileService profileService, AutoMapper.IMapper mapper)
         {
             _profileService = profileService;
             _mapper = mapper;
         }
 
+        [Route("ping")]
         [HttpGet]
         public IActionResult Ping()
         {
@@ -84,6 +85,33 @@ namespace AccountApi.Controllers
             {
                 return Problem(ex.ToString());
             }
+        }
+
+        [Authorize]
+        [Route("{username}")]
+        [HttpGet]
+        public async Task<ActionResult> GetUser(string username)
+        {
+            var profileData = await _profileService.GetByUsername(username);
+
+            if (profileData == null)
+            {
+                return NotFound();
+            }
+
+            var profileModel = new ProfileModel
+            {
+                Username = profileData.Username,
+                FirstName = profileData.FirstName,
+                LastName = profileData.LastName,
+                DateOfBirth = profileData.DateOfBirth,
+                PhoneNumber = profileData.PhoneNumber,
+                EmailAddress = profileData.EmailAddress,
+                CreatedAt = profileData.CreatedAt,
+                UpdatedAt = profileData.UpdatedAt
+            };
+
+            return Ok(profileModel);
         }
     }
 }
